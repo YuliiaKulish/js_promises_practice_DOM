@@ -25,19 +25,26 @@ let leftClicked = false;
 let rightClicked = false;
 
 const firstPromise = new Promise((resolve, reject) => {
+  let settled = false;
+
   const timer = setTimeout(() => {
-    if (!leftClicked) {
+    if (!settled && !leftClicked) {
+      settled = true;
       reject(new Error('First promise was rejected'));
     }
   }, 3000);
 
-  document.addEventListener('click', (e) => {
-    if (e.button === 0 && !leftClicked) {
+  const handleClick = (e) => {
+    if (e.button === 0 && !leftClicked && !settled) {
       leftClicked = true;
+      settled = true;
       clearTimeout(timer);
-      resolve('First promise was resolved on a left click in the document');
+      document.removeEventListener('click', handleClick);
+      resolve('First promise was resolved');
     }
-  });
+  };
+
+  document.addEventListener('click', handleClick);
 });
 
 const secondPromise = new Promise((resolve) => {
@@ -46,6 +53,8 @@ const secondPromise = new Promise((resolve) => {
   const handleLeftClick = (e) => {
     if (e.button === 0 && !resolved) {
       resolved = true;
+      document.removeEventListener('click', handleLeftClick);
+      document.removeEventListener('contextmenu', handleRightClick);
       resolve('Second promise was resolved');
     }
   };
@@ -55,6 +64,8 @@ const secondPromise = new Promise((resolve) => {
 
     if (!resolved) {
       resolved = true;
+      document.removeEventListener('click', handleLeftClick);
+      document.removeEventListener('contextmenu', handleRightClick);
       resolve('Second promise was resolved');
     }
   };
@@ -64,30 +75,42 @@ const secondPromise = new Promise((resolve) => {
 });
 
 const thirdPromise = new Promise((resolve) => {
+  let resolved = false;
+
   const checkBoth = () => {
-    if (leftClicked && rightClicked) {
+    if (leftClicked && rightClicked && !resolved) {
+      resolved = true;
+      document.removeEventListener('click', handleLeft);
+      document.removeEventListener('contextmenu', handleRight);
       resolve('Third promise was resolved');
     }
   };
 
-  document.addEventListener('click', (e) => {
+  const handleLeft = (e) => {
     if (e.button === 0) {
       leftClicked = true;
       checkBoth();
     }
-  });
+  };
 
-  document.addEventListener('contextmenu', (e) => {
+  const handleRight = (e) => {
     e.preventDefault();
     rightClicked = true;
     checkBoth();
-  });
+  };
+
+  document.addEventListener('click', handleLeft);
+  document.addEventListener('contextmenu', handleRight);
 });
 
 firstPromise
   .then((msg) => showNotification('success', msg))
-  .catch((err) => showNotification('error', err.message));
+  .catch((err) => showNotification('error', err?.message ?? err));
 
-secondPromise.then((msg) => showNotification('success', msg));
+secondPromise
+  .then((msg) => showNotification('success', msg))
+  .catch((err) => showNotification('error', err?.message ?? err));
 
-thirdPromise.then((msg) => showNotification('success', msg));
+thirdPromise
+  .then((msg) => showNotification('success', msg))
+  .catch((err) => showNotification('error', err?.message ?? err));
