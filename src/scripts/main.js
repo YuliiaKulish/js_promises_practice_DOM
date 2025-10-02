@@ -1,24 +1,56 @@
 'use strict';
 
 function showNotification(type, message) {
-  const div = document.createElement('div');
+  const existing = document.querySelector('[data-qa="notification"]');
 
-  div.className = `notification ${type}`;
-  div.setAttribute('data-qa', 'notification');
+  const titleText = type === 'success' ? 'Success' : 'Error';
 
-  const title = document.createElement('div');
+  if (existing) {
+    existing.classList.remove('success', 'error');
+    existing.classList.add(type);
 
-  title.className = 'notification__title';
-  title.textContent = type === 'success' ? 'Success' : 'Error';
+    const title = existing.querySelector('.notification__title');
+    const description = existing.querySelector('.notification__description');
 
-  const description = document.createElement('div');
+    if (title) {
+      title.textContent = titleText;
+    } else {
+      const newTitle = document.createElement('div');
 
-  description.className = 'notification__description';
-  description.textContent = message;
+      newTitle.className = 'notification__title';
+      newTitle.textContent = titleText;
+      existing.appendChild(newTitle);
+    }
 
-  div.appendChild(title);
-  div.appendChild(description);
-  document.body.appendChild(div);
+    if (description) {
+      description.textContent = message;
+    } else {
+      const newDesc = document.createElement('div');
+
+      newDesc.className = 'notification__description';
+      newDesc.textContent = message;
+      existing.appendChild(newDesc);
+    }
+  } else {
+    const div = document.createElement('div');
+
+    div.className = `notification ${type}`;
+    div.setAttribute('data-qa', 'notification');
+
+    const title = document.createElement('div');
+
+    title.className = 'notification__title';
+    title.textContent = titleText;
+
+    const description = document.createElement('div');
+
+    description.className = 'notification__description';
+    description.textContent = message;
+
+    div.appendChild(title);
+    div.appendChild(description);
+    document.body.appendChild(div);
+  }
 }
 
 let leftClicked = false;
@@ -26,13 +58,6 @@ let rightClicked = false;
 
 const firstPromise = new Promise((resolve, reject) => {
   let settled = false;
-
-  const timer = setTimeout(() => {
-    if (!settled && !leftClicked) {
-      settled = true;
-      reject(new Error('First promise was rejected'));
-    }
-  }, 3000);
 
   const handleClick = (e) => {
     if (e.button === 0 && !leftClicked && !settled) {
@@ -43,6 +68,14 @@ const firstPromise = new Promise((resolve, reject) => {
       resolve('First promise was resolved');
     }
   };
+
+  const timer = setTimeout(() => {
+    if (!settled && !leftClicked) {
+      settled = true;
+      document.removeEventListener('click', handleClick);
+      reject('First promise was rejected');
+    }
+  }, 3000);
 
   document.addEventListener('click', handleClick);
 });
